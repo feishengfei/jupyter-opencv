@@ -1,5 +1,5 @@
-FROM ubuntu:16.04
-MAINTAINER Michele Dallachiesa <michele.dallachiesa@gmail.com>
+FROM ubuntu:22.04
+MAINTAINER felix <feishengfei@gmail.com>
 # Container providing Jupyter notebook server with Python3 bindings for OpenCV 3.4.0
 # Based on https://www.pyimagesearch.com/2016/10/24/ubuntu-16-04-how-to-install-opencv/
 # Not compiling/installing templates, added gtk support
@@ -16,16 +16,16 @@ RUN dpkg-reconfigure --frontend=noninteractive locales
 ENV LC_ALL en_US.UTF-8
 ENV LANG en_US.UTF-8
 
-# Install python3, and activate python3.5 as default python interpreter
+# Install python3, and activate python3.10 as default python interpreter
 RUN apt-get -y install python3-dev python3 python3-pip python3-venv
 RUN pip3 install --upgrade pip
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.5 1
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.10 1
 
 # Install packages required for compiling opencv
 RUN apt-get -y install build-essential cmake pkg-config wget
 
 # Install packages providing support for several image formats
-RUN apt-get -y install libjpeg8-dev libtiff5-dev libjasper-dev libpng12-dev
+RUN apt-get -y install libjpeg8-dev libtiff5-dev libopenjp2-7-dev libpng-dev
 
 # Install packages providing support for several video formats
 RUN apt-get -y install libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev
@@ -36,18 +36,23 @@ RUN apt-get -y install libgtk-3-dev
 # Install additional packages optimizing opencv
 RUN apt-get -y install libatlas-base-dev gfortran
 
+RUN apt-get -y install zip unzip
+
 # Define OpenCV version to download, compile and install
-ENV OPENCV_VERSION 3.4.0
+ENV OPENCV_VERSION 4.7.0
 
 WORKDIR /root
-RUN wget -O opencv.tgz https://github.com/opencv/opencv/archive/${OPENCV_VERSION}.tar.gz
-RUN wget -O opencv_contrib.tgz https://github.com/Itseez/opencv_contrib/archive/${OPENCV_VERSION}.tar.gz
+# https://github.com/opencv/opencv/archive/refs/tags/4.7.0.tar.gz
+RUN wget -O opencv.tgz https://github.com/opencv/opencv/archive/refs/tags/${OPENCV_VERSION}.tar.gz
+# https://github.com/opencv/opencv_contrib/archive/refs/tags/4.7.0.tar.gz
+RUN wget -O opencv_contrib.tgz https://github.com/opencv/opencv_contrib/archive/refs/tags/${OPENCV_VERSION}.tar.gz
 RUN tar xzf opencv.tgz
 RUN tar xzf opencv_contrib.tgz
 RUN mkdir /root/opencv-${OPENCV_VERSION}/build
 
 # numpy required for OpenCV Python bindings
-RUN pip3 install numpy==1.14.2
+RUN python3 -m pip install gdown
+RUN python3 -m pip install numpy
 
 # Configure
 RUN cd /root/opencv-${OPENCV_VERSION}/build && \
@@ -62,7 +67,7 @@ RUN cd /root/opencv-${OPENCV_VERSION}/build && \
         ..
 
 # Compile
-RUN cd /root/opencv-${OPENCV_VERSION}/build && make
+RUN cd /root/opencv-${OPENCV_VERSION}/build && make -j `nproc`
 
 # Install
 RUN cd /root/opencv-${OPENCV_VERSION}/build && make install
